@@ -1,0 +1,14 @@
+correr con permisos administrativos
+
+
+npm install // para actualizar
+npm run dev //backend correr come debug
+cd tab //busca ruta
+
+npm run web //front para ir a web
+npm run android // ejecutar en el telefono concectado
+
+si esta en ejecutando en android podes usar en terminal la "r" para reload
+
+
+//AIzaSyAbp_wVM2ROcikrtS7JsBqDaW4mBKov0_o  clave api
