@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, FlatList, TouchableOpacity, Modal, StyleSheet, Alert } from "react-native";
 import axios from "axios";
 import { FontAwesome } from "@expo/vector-icons";
+import  API from '../controller/API';
 
 const DependentScreen = ({ route, navigation }) => {
     const { id_empresa } = route.params;
@@ -21,7 +22,7 @@ const DependentScreen = ({ route, navigation }) => {
 
     const fetchDependientes = async () => {
         try {
-            const response = await axios.get(`http://192.168.1.98:3001/user/dependientes/${id_empresa}`);
+            const response = await axios.get(`${API}/user/dependientes/${id_empresa}`);
             setDependientes(response.data.data);
         } catch (error) {
             console.error("Error cargando dependientes:", error.message);
@@ -36,7 +37,7 @@ const DependentScreen = ({ route, navigation }) => {
                 rol: "D"
             });
     
-            const response = await axios.post("http://192.168.1.98:3001/user", {
+            const response = await axios.post(`${API}/user`, {
                 ...newDependiente,
                 id_empresa,
                 rol: "D"
@@ -70,7 +71,7 @@ const DependentScreen = ({ route, navigation }) => {
         }
 
         try {
-            await axios.patch("http://192.168.1.98:3001/auth/change-password", {
+            await axios.patch(`${API}/auth/change-password`, {
                 id_cedula: selectedDependiente.id_cedula,
                 contrasena: newDependiente.contrasena
             });
@@ -93,7 +94,7 @@ const DependentScreen = ({ route, navigation }) => {
                     text: "Eliminar",
                     onPress: async () => {
                         try {
-                            await axios.delete(`http://192.168.1.98:3001/user/delete/adm/${id_cedula}`);
+                            await axios.delete(`${API}/user/delete/adm/${id_cedula}`);
                             fetchDependientes();
                             Alert.alert("Éxito", "Dependiente eliminado");
                         } catch (error) {

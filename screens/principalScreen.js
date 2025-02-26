@@ -3,6 +3,7 @@ import axios from "axios";
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import  API from '../controller/API';
 
 const MenuWithIconsAndLogo = ({ navigation, route }) => {
     const [user, setUser] = useState(route.params?.user || {});
@@ -22,23 +23,31 @@ const MenuWithIconsAndLogo = ({ navigation, route }) => {
     const handleLogout = async () => {
         try {
             const token = await AsyncStorage.getItem("token");
-
+    
+            console.log("🔹 Token enviado en logout:", token); // Verifica el token en consola
+    
             //  Llamar al backend para cerrar sesión
-            await axios.post("http://192.168.1.98:3001/auth/logout", {}, {
+            const response = await axios.post(`${API}/auth/logout`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-
+    
+            console.log("✅ Logout exitoso:", response.data);
+    
             //  Eliminar el token y los datos del usuario del frontend
             await AsyncStorage.removeItem("token");
             await AsyncStorage.removeItem("user");
-
-            //  Redirigir a la pantalla de login
-            navigation.navigate("loginScreen");
+    
+            // 🔹 Resetear navegación para evitar regresar a la pantalla anterior
+            navigation.reset({
+                index: 0,
+                routes: [{ name: "loginScreen" }], // Se envía a login sin posibilidad de volver atrás
+            });
         } catch (error) {
-            console.error("Error al cerrar sesión:", error.message);
+            console.error("❌ Error al cerrar sesión:", error.response?.data || error.message);
         }
     };
-
+    
+    
     console.log("Datos completos del usuario en Menu:", user);
 
     const isDependiente = user?.rol?.trim()?.toUpperCase() === "D";
@@ -77,7 +86,7 @@ const MenuWithIconsAndLogo = ({ navigation, route }) => {
                 {!isDependiente && (
                     <TouchableOpacity
                         style={styles.menuButton}
-                        onPress={() => navigation.navigate("reportScreen")}
+                        onPress={() => navigation.navigate("reportScreen", { user })}
                     >
                         <FontAwesome name="file" size={24} color="black" />
                         <Text style={styles.menuText}>Reportes</Text>
@@ -87,7 +96,7 @@ const MenuWithIconsAndLogo = ({ navigation, route }) => {
                 {!isDependiente && (
                     <TouchableOpacity
                         style={styles.menuButton}
-                        onPress={() => navigation.navigate("patientFileScreen")}
+                        onPress={() => navigation.navigate("patientFileScreen", { user })}
                     >
                         <FontAwesome name="folder" size={24} color="black" />
                         <Text style={styles.menuText}>Archivos</Text>

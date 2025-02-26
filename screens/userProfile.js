@@ -20,7 +20,7 @@ const UserProfile = ({ route, navigation }) => {
 
   const handleAccept = async () => {
     try {
-      const response = await axios.patch(`http://192.168.1.98:3001/user`, formData);
+      const response = await axios.patch(`https://backend-subir-production.up.railway.app/user`, formData);
       if (response.status === 200) {
         alert('Datos actualizados exitosamente');
         setIsEditing(false);

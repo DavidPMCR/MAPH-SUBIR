@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import {View,Text,TextInput,TouchableOpacity,StyleSheet,Alert,ScrollView,} from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import MaskInput from 'react-native-mask-input';
 import axios from 'axios';
+import  API from '../controller/API';
 
 const FileUpload = ({ route }) => {
   const { user } = route.params;
@@ -35,13 +28,21 @@ const FileUpload = ({ route }) => {
   // Cargar pacientes desde el backend
   const fetchPatients = async () => {
     try {
-      const response = await axios.get('http://192.168.1.98:3001/patient');
-      setPatients(response.data.data);
+      const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
+  
+      // 🔹 Verificamos si response.data y response.data.data existen
+      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
+      } else {
+        setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
+      }
     } catch (error) {
-      console.error('Error al cargar pacientes:', error.message);
+      console.error('❌ Error al cargar los pacientes:', error.message);
       Alert.alert('Error', 'No se pudieron cargar los pacientes.');
+      setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
     }
   };
+  
 
   // Solicitar permisos de galería
   const requestPermission = async () => {
@@ -128,7 +129,7 @@ const FileUpload = ({ route }) => {
     formData.append('detalle', data.detalle);
 
     try {
-      const response = await axios.post('http://192.168.1.98:3001/api/files/upload', formData, {
+      const response = await axios.post(`${API}/api/files/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

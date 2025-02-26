@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, Alert, TouchableOpacity, ImageBackground } from 'react-native';
 import axios from 'axios';
+import  API from '../controller/API';
 
 const SupportRequestScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ const SupportRequestScreen = ({ navigation }) => {
         };
 
         try {
-            await axios.post('http://192.168.1.98:3001/sendEmail/support', emailData);
+            await axios.post(`${API}/sendEmail/support`, emailData);
             Alert.alert('Éxito', 'Tu solicitud de soporte ha sido enviada.');
             navigation.navigate('loginScreen'); // Redirigir a la pantalla de login
         } catch (error) {
@@ -96,57 +97,70 @@ const SupportRequestScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     background: {
         flex: 1,
-        resizeMode: 'cover', // Ajusta la imagen para que cubra toda la pantalla
-        justifyContent: 'center',
+        resizeMode: 'cover',
     },
     container: {
-        flex: 1,
+        flexGrow: 1,
         padding: 20,
         justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)', // Fondo semi-transparente para mejorar la legibilidad
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)', // Fondo semi-transparente
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginBottom: 20,
         textAlign: 'center',
-        color: '#333',
+        color: '#007bff', // Celeste
     },
     input: {
         height: 50,
-        borderColor: '#ccc',
+        width: '80%',
+        borderColor: '#007bff', // Borde celeste
         borderWidth: 1,
         borderRadius: 8,
         marginBottom: 15,
-        paddingHorizontal: 10,
-        backgroundColor: '#fff',
+        paddingHorizontal: 15,
+        backgroundColor: '#e9ecef', // Fondo celeste claro
     },
     textArea: {
         height: 100,
+        width: '80%',
+        borderColor: '#007bff', // Borde celeste
+        borderWidth: 1,
+        borderRadius: 8,
+        marginBottom: 15,
+        paddingHorizontal: 15,
         textAlignVertical: 'top',
+        backgroundColor: '#e9ecef', // Fondo celeste claro
     },
     button: {
-        backgroundColor: '#007bff',
+        backgroundColor: '#fdb813', // Mismo color que el botón de login
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: 'center',
+        paddingHorizontal: 30,
+        marginTop: 10,
     },
     buttonText: {
-        color: '#fff',
+        color: '#000', // Texto negro para contraste
         fontSize: 16,
         fontWeight: 'bold',
     },
     backText: {
         marginTop: 20,
         textAlign: 'center',
-        color: '#007bff',
+        color: '#0000ee',
         textDecorationLine: 'underline',
     },
     errorText: {
         color: 'red',
         marginBottom: 10,
         textAlign: 'center',
+        fontSize: 14,
     },
 });
+
+
 
 export default SupportRequestScreen;

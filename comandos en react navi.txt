@@ -12,3 +12,12 @@ si esta en ejecutando en android podes usar en terminal la "r" para reload
 
 
 //AIzaSyAbp_wVM2ROcikrtS7JsBqDaW4mBKov0_o  clave api
+
+
+crear app
+
+Paso 1: Instalación de EAS CLI
+npm install -g eas-cli
+
+Paso 2: correr de nuevo la construccion
+eas build --platform android --profile preview

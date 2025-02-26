@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, Alert, TouchableOpacity, Switch, ScrollView, ImageBackground } from 'react-native';
 import axios from 'axios';
+import  API from '../controller/API';
 
 const CreateUserRequestScreen = ({ navigation }) => {
   const [userData, setUserData] = useState({
@@ -59,7 +60,7 @@ const CreateUserRequestScreen = ({ navigation }) => {
     };
 
     try {
-      await axios.post('http://192.168.1.98:3001/sendEmail/createUser', emailData);
+      await axios.post(`${API}/sendEmail/createUser`, emailData);
       Alert.alert('Éxito', 'Tu solicitud ha sido enviada correctamente.');
       navigation.navigate('loginScreen');
     } catch (error) {
@@ -113,65 +114,66 @@ const CreateUserRequestScreen = ({ navigation }) => {
   );
 };
 
+//estilos para inputs  y texto
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    resizeMode: 'cover', // Ajusta la imagen para que cubra toda la pantalla
-    justifyContent: 'center',
+    resizeMode: 'cover',
   },
   container: {
     flexGrow: 1,
     padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)', // Fondo semi-transparente para mejorar la legibilidad
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
+    color: '#007bff',
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    width: '80%',
+    borderColor: '#007bff',
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 15,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    backgroundColor: '#e9ecef',
   },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '80%',
     marginBottom: 15,
   },
   label: {
     fontSize: 16,
-    color: '#333',
+    color: '#000',
   },
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#fdb813',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    paddingHorizontal: 30,
+    marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  backText: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#007bff',
-    textDecorationLine: 'underline',
   },
   errorText: {
     color: 'red',
     marginBottom: 10,
     textAlign: 'center',
+    fontSize: 14,
   },
 });
+
 
 export default CreateUserRequestScreen;

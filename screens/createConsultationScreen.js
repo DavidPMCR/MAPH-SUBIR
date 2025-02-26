@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal,
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import MaskInput from 'react-native-mask-input';
+import  API from '../controller/API';
 
 const ConsultationScreen = ({ route }) => {
   const { user } = route.params; // Usuario logueado
@@ -29,7 +30,7 @@ const ConsultationScreen = ({ route }) => {
   // Cargar datos desde la base de datos
   const fetchConsultationData = async () => {
     try {
-      const response = await axios.get('http://192.168.1.98:3001/consultation');
+      const response = await axios.get(`${API}/consultation/empresa/${user.id_empresa}`);
       if (response.data.code === "200" && response.data.data.length > 0) {
         const consultation = response.data.data[0]; // Usamos la primera consulta para llenar los campos
         setFormData({
@@ -75,13 +76,21 @@ const ConsultationScreen = ({ route }) => {
   // Cargar pacientes desde el backend para el modal
   const fetchPatients = async () => {
     try {
-      const response = await axios.get('http://192.168.1.98:3001/patient');
-      setPatients(response.data.data); // Asigna la lista de pacientes
+      const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
+  
+      // 🔹 Verificamos si response.data y response.data.data existen
+      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
+      } else {
+        setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
+      }
     } catch (error) {
-      console.error('Error al cargar los pacientes:', error.message);
+      console.error('❌ Error al cargar los pacientes:', error.message);
       Alert.alert('Error', 'No se pudieron cargar los pacientes.');
+      setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
     }
   };
+
 
   // Guardar consulta actualizada
   const handleSaveConsultation = async () => {
@@ -114,7 +123,7 @@ const ConsultationScreen = ({ route }) => {
       console.log("Datos que se enviarán al backend (payload):", payload);
 
       // Llamada al backend con pacht
-      const response = await axios.patch(`http://192.168.1.98:3001/consultation`, payload);
+      const response = await axios.patch(`${API}/consultation`, payload);
 
       // Log para verificar la respuesta del servidor
       console.log("Respuesta del servidor:", response.data);
@@ -134,7 +143,7 @@ const ConsultationScreen = ({ route }) => {
   // Finalizar consulta
   const handleFinalizeConsultation = async () => {
     try {
-      const response = await axios.patch(`http://192.168.1.98:3001/consultation/${formData.id_consulta}`, { estado: 1 });
+      const response = await axios.patch(`${API}/consultation/${formData.id_consulta}`, { estado: 1 });
       if (response.status === 200 || response.status === 201) {
         setFormData({
           id_consulta: '',
@@ -189,7 +198,7 @@ const ConsultationScreen = ({ route }) => {
         return;
       }
 
-      const response = await axios.post('http://192.168.1.98:3001/consultation', { ...formData, id_empresa: user.id_empresa });
+      const response = await axios.post(`${API}/consultation`, { ...formData, id_empresa: user.id_empresa });
 
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Éxito', 'Consulta creada exitosamente.');

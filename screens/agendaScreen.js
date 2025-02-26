@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Modal } from
 import { Calendar } from 'react-native-calendars';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import API from '../controller/API';
 
 const AgendaScreen = ({ navigation, route }) => {
   const { user } = route.params; // Usuario logueado pasado como parámetro
@@ -20,33 +21,54 @@ const AgendaScreen = ({ navigation, route }) => {
     hora_final: '', // Hora final
   });
 
+
   // Función para cargar las citas desde el backend
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('http://192.168.1.98:3001/diary');
-      const loadedEvents = response.data.data.map((event) => ({
-        id: event.numero_cita.toString(),
-        date: event.fecha.split('T')[0], // Solo se toma la parte de la fecha
-        title: `${event.nombre_usuario} - ${event.nombre_paciente}`,
-        time: `${event.hora_inicio} - ${event.hora_final}`,
-      }));
-      setEvents(loadedEvents);
+      const response = await axios.get(`${API}/diary/empresa/${user.id_empresa}`);
+
+      // 🔹 Verificamos si response.data y response.data.data existen
+      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        const loadedEvents = response.data.data.map((event) => ({
+          id: event.numero_cita?.toString() || `event_${Math.random()}`, // Si no tiene id, genera uno temporal
+          date: event.fecha ? event.fecha.split('T')[0] : '', // 🔹 Evita errores si `fecha` es undefined
+          title: event.nombre_usuario && event.nombre_paciente
+            ? `${event.nombre_usuario} - ${event.nombre_paciente}`
+            : 'Evento sin nombre',
+          time: event.hora_inicio && event.hora_final
+            ? `${event.hora_inicio} - ${event.hora_final}`
+            : 'Hora no disponible',
+        }));
+        setEvents(loadedEvents);
+      } else {
+        setEvents([]); // 🔹 Si no hay citas, aseguramos que events sea un array vacío
+      }
     } catch (error) {
-      console.error('Error al cargar las citas:', error.message);
+      console.error('❌ Error al cargar las citas:', error.message);
       Alert.alert('Error', 'No se pudieron cargar las citas.');
+      setEvents([]); // 🔹 Si hay un error, evitamos que `events` sea `undefined`
     }
   };
 
-  // Función para cargar pacientes desde el backend
-  const fetchPatients = async () => {
-    try {
-      const response = await axios.get('http://192.168.1.98:3001/patient');
-      setPatients(response.data.data); // Guardar la lista de pacientes
-    } catch (error) {
-      console.error('Error al cargar los pacientes:', error.message);
-      Alert.alert('Error', 'No se pudieron cargar los pacientes.');
+
+// Función para cargar pacientes desde el backend
+const fetchPatients = async () => {
+  try {
+    const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
+
+    // 🔹 Verificamos si response.data y response.data.data existen
+    if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+      setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
+    } else {
+      setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
     }
-  };
+  } catch (error) {
+    console.error('❌ Error al cargar los pacientes:', error.message);
+    Alert.alert('Error', 'No se pudieron cargar los pacientes.');
+    setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
+  }
+};
+
 
   // Función para guardar una nueva cita y enviar correo de confirmacion
   const handleSaveAppointment = async () => {
@@ -62,7 +84,7 @@ const AgendaScreen = ({ navigation, route }) => {
     }
 
     try {
-      const response = await axios.post('http://192.168.1.98:3001/diary', newAppointment);
+      const response = await axios.post(`${API}/diary`, newAppointment);
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Éxito', 'Cita creada exitosamente.');
 
@@ -77,7 +99,7 @@ const AgendaScreen = ({ navigation, route }) => {
             - ⏰ Horario: ${hora_inicio} - ${hora_final}`
           };
 
-          await axios.post('http://192.168.1.98:3001/sendEmail/cita', emailData)
+          await axios.post(`${API}/sendEmail/cita`, emailData)
             .then(() => {
               Alert.alert('Correo Enviado', 'Se ha enviado la confirmación al correo del paciente.');
               console.log('Correo enviado correctamente');
@@ -126,7 +148,7 @@ const AgendaScreen = ({ navigation, route }) => {
           style: 'destructive', // Botón de eliminar (rojo en iOS)
           onPress: async () => {
             try {
-              const response = await axios.delete(`http://192.168.1.98:3001/diary/${id}`);
+              const response = await axios.delete(`${API}/diary/${id}`);
               if (response.status === 200) {
                 Alert.alert('Éxito', 'La cita ha sido eliminada.');
                 fetchEvents(); // Recargar las citas después de eliminar
@@ -216,12 +238,11 @@ const AgendaScreen = ({ navigation, route }) => {
         renderItem={renderEventItem}
         keyExtractor={(item) => item.id}
         style={styles.eventList}
-        ListEmptyComponent={
-          selectedDate && (
-            <Text style={styles.noEventsText}>No hay eventos para esta fecha.</Text>
-          )
-        }
+        ListEmptyComponent={() => (
+          <Text style={styles.noEventsText}>No hay eventos para esta fecha.</Text>
+        )}
       />
+
 
       {/* Botón para crear nueva cita-modal */}
       <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>

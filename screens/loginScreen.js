@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import  API from '../controller/API';
 
 const LoginScreen = ({ navigation }) => {
   const [cedula, setCedula] = useState('');
@@ -10,31 +11,24 @@ const LoginScreen = ({ navigation }) => {
   
 
   const handleLogin = async () => {
-    if (!cedula.trim()) {
-        setError("Usuario es obligatorio");
-        return;
-    }
-    if (!contrasena.trim()) {
-        setError("La contraseña es obligatoria");
-        return;
-    }
-
     try {
-        const response = await axios.post("http://192.168.1.98:3001/auth/login", {
+        const response = await axios.post(`${API}/auth/login`, {
             id_cedula: cedula,
             contrasena: contrasena,
         });
 
+        console.log("🔹 Respuesta del backend en login:", response.data);
+
         if (response.data.code == 200) {
             const { user, token } = response.data.data;
 
+            // 🔹 Verificar si el token es recibido
+            console.log("✅ Token recibido en frontend:", token);
+
             // Guardar el token en AsyncStorage
             await AsyncStorage.setItem("token", token);
-
-            // Guardar el usuario en AsyncStorage
             await AsyncStorage.setItem("user", JSON.stringify(user));
 
-            // Redirigir a la pantalla principal con los datos del usuario
             navigation.reset({
                 index: 0,
                 routes: [{ name: "principalScreen", params: { user } }],
@@ -43,12 +37,8 @@ const LoginScreen = ({ navigation }) => {
             setError("Credenciales incorrectas");
         }
     } catch (error) {
-        if (error.response && error.response.status === 403) {
-            setError("Ya hay una sesión activa. Cierra sesión antes de volver a entrar.");
-        } else {
-            setError("Error al autenticar.");
-        }
-        console.error("Error de login:", error.message);
+        console.error("❌ Error en login:", error.response?.data || error.message);
+        setError("Error al autenticar.");
     }
 };
 
@@ -114,49 +104,56 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#000',
+    textAlign: 'center',
+    color: '#007bff', // Celeste, igual que en las otras vistas
   },
   input: {
     height: 50,
     width: '80%',
-    borderColor: '#ccc',
+    borderColor: '#007bff', // Borde celeste
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 15,
     paddingHorizontal: 15,
-    backgroundColor: '#fff',
+    backgroundColor: '#e9ecef', // Fondo celeste claro
   },
   loginButton: {
-    backgroundColor: '#fdb813',
+    backgroundColor: '#fdb813', // Mismo color del botón de login en otras vistas
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 30,
     marginTop: 10,
   },
   loginButtonText: {
-    color: '#000',
+    color: '#000', // Texto en negro para contraste
+    fontSize: 16,
     fontWeight: 'bold',
   },
   registerText: {
     marginTop: 20,
+    textAlign: 'center',
     color: '#0000ee',
     textDecorationLine: 'underline',
   },
   forgotPasswordText: {
     marginTop: 10,
+    textAlign: 'center',
     color: '#0000ee',
     textDecorationLine: 'underline',
   },
   pricingText: {
     marginTop: 10,
+    textAlign: 'center',
     color: '#0000ee',
     fontSize: 16,
   },
   errorText: {
     color: 'red',
     marginBottom: 10,
+    textAlign: 'center',
     fontSize: 14,
   },
 });
+
 
 export default LoginScreen;

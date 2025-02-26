@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Alert } from 'react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
+import  API from '../controller/API';
 
 const MedicalHistoryScreen = ({ route }) => {
   const { user } = route.params; // Usuario logueado
@@ -24,18 +25,26 @@ const MedicalHistoryScreen = ({ route }) => {
   // Cargar lista de pacientes
   const fetchPatients = async () => {
     try {
-      const response = await axios.get('http://192.168.1.98:3001/patient');
-      setPatients(response.data.data);
+      const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
+  
+      // 🔹 Verificamos si response.data y response.data.data existen
+      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
+      } else {
+        setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
+      }
     } catch (error) {
-      console.error('Error al cargar los pacientes:', error.message);
+      console.error('❌ Error al cargar los pacientes:', error.message);
       Alert.alert('Error', 'No se pudieron cargar los pacientes.');
+      setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
     }
   };
+  
 
   // Cargar historial médico por cédula
 const fetchMedicalHistory = async (cedula) => {
     try {
-      const response = await axios.get(`http://192.168.1.98:3001/mh/${cedula}`);
+      const response = await axios.get(`${API}/mh/${cedula}`);
       if (response.data.code === "200" && response.data.data) {
         const medicalData = response.data.data; // Aquí están los datos reales del historial médico
         console.log("trae esto del backend", response.data);
@@ -99,7 +108,7 @@ const handleSaveHistory = async () => {
       }
   
       const payload = { ...formData };
-      const response = await axios.post('http://192.168.1.98:3001/mh', payload);
+      const response = await axios.post(`${API}/mh`, payload);
   
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Éxito', 'Historial médico creado correctamente.');
@@ -136,7 +145,7 @@ const handleSaveHistory = async () => {
       console.log('Datos del formulario enviados:', formData);
   
       // Realizar la solicitud PATCH con el cuerpo de los datos
-      const response = await axios.patch('http://192.168.1.98:3001/mh', formData);
+      const response = await axios.patch(`${API}/mh`, formData);
   
       if (response.status === 200 || response.status === 201) {
         Alert.alert('Éxito', 'Historial médico actualizado correctamente.');
@@ -181,7 +190,7 @@ const handleDeleteHistory = async () => {
           onPress: async () => {
             try {
               console.log("Cédula enviada:", id_cedula); // Muestra la cédula para depuración
-              const response = await axios.delete(`http://192.168.1.98:3001/mh/${id_cedula}`);
+              const response = await axios.delete(`${API}/mh/${id_cedula}`);
               if (response.status === 200 || response.status === 201) {
                 Alert.alert('Éxito', 'Historial médico eliminado correctamente.');
                 setFormData({

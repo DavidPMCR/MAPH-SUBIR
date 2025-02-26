@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
+
 const MenuWithIconsAndLogo = ({ navigation, route }) => {
   const { user } = route.params;
 
