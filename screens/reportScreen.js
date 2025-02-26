@@ -24,11 +24,17 @@ const ConsultationReport = ({ route }) => {
   const fetchPatients = async () => {
     try {
       const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
-      setPatients(response.data.data || []);
+  
+      // 🔹 Verificamos si response.data y response.data.data existen
+      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+        setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
+      } else {
+        setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
+      }
     } catch (error) {
       console.error('❌ Error al cargar los pacientes:', error.message);
       Alert.alert('Error', 'No se pudieron cargar los pacientes.');
-      setPatients([]);
+      setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
     }
   };
 
@@ -121,7 +127,7 @@ const ConsultationReport = ({ route }) => {
         }
     } catch (error) {
         console.error('Error al generar el archivo CSV:', error.message);
-        Alert.alert('❌ Error', 'No se pudo generar el archivo de reporte verique que año o mes sean correctos o posean consultas.');
+        Alert.alert('❌ Error', 'No se pudo generar el archivo de reporte, verique que año o mes sean correctos o posean consultas ');
     }
 };
 
