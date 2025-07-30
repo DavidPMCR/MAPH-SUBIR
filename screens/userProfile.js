@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import axios from 'axios';
+import  API from '../controller/API';
 
 const UserProfile = ({ route, navigation }) => {
   const { user } = route.params;
@@ -20,7 +21,7 @@ const UserProfile = ({ route, navigation }) => {
 
   const handleAccept = async () => {
     try {
-      const response = await axios.patch(`https://backend-subir-production.up.railway.app/user`, formData);
+      const response = await axios.patch(`${API}/user`, formData);
       if (response.status === 200) {
         alert('Datos actualizados exitosamente');
         setIsEditing(false);

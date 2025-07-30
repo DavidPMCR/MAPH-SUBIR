@@ -26,7 +26,9 @@ const DependentScreen = ({ route, navigation }) => {
             setDependientes(response.data.data);
         } catch (error) {
             console.error("Error cargando dependientes:", error.message);
+            
         }
+        
     };
 
     const handleAddDependiente = async () => {
@@ -94,11 +96,21 @@ const DependentScreen = ({ route, navigation }) => {
                     text: "Eliminar",
                     onPress: async () => {
                         try {
-                            await axios.delete(`${API}/user/delete/adm/${id_cedula}`);
-                            fetchDependientes();
-                            Alert.alert("Éxito", "Dependiente eliminado");
+                            const response = await axios.delete(`${API}/user/delete/adm/${id_cedula}`);
+    
+                            if (response.status === 200) {
+                                // 🔹 Actualiza la lista de dependientes después de eliminar
+                                setDependientes((prevDependientes) =>
+                                    prevDependientes.filter(dependiente => dependiente.id_cedula !== id_cedula)
+                                );
+    
+                                Alert.alert("Éxito", "Dependiente eliminado");
+                            } else {
+                                Alert.alert("Error", "No se pudo eliminar el dependiente");
+                            }
                         } catch (error) {
-                            console.error("Error eliminando dependiente:", error.message);
+                            console.error("❌ Error eliminando dependiente:", error.message);
+                            Alert.alert("Error", "Hubo un problema al eliminar el dependiente");
                         }
                     },
                     style: "destructive"
@@ -106,7 +118,8 @@ const DependentScreen = ({ route, navigation }) => {
             ]
         );
     };
-
+    
+   
     const openEditModal = (dependiente) => {
         setSelectedDependiente(dependiente);
         setNewDependiente({
@@ -130,8 +143,14 @@ const DependentScreen = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Dependientes</Text>
-            
+        <Text style={styles.title}>Dependientes</Text>
+    
+        {/* 📌 Mostrar mensaje si no hay dependientes */}
+        {dependientes.length === 0 ? (
+            <View style={styles.noDependentsContainer}>
+                <Text style={styles.noDependentsText}>No hay dependientes registrados para mostrar</Text>
+            </View>
+        ) : (
             <FlatList
                 data={dependientes}
                 keyExtractor={(item) => item.id_cedula}
@@ -162,10 +181,11 @@ const DependentScreen = ({ route, navigation }) => {
                     </View>
                 )}
             />
-
-            <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-                <Text style={styles.buttonText}>Agregar Dependiente</Text>
-            </TouchableOpacity>
+        )}
+    
+        <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <Text style={styles.buttonText}>Agregar Dependiente</Text>
+        </TouchableOpacity>
 
             {/* Modal para agregar/editar dependiente */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
@@ -251,6 +271,19 @@ const styles = StyleSheet.create({
     modalButtons: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
     saveButton: { backgroundColor: "#28a745", padding: 15, borderRadius: 8, flex: 1, marginRight: 10, alignItems: "center" },
     cancelButton: { backgroundColor: "#d9534f", padding: 15, borderRadius: 8, flex: 1, marginLeft: 10, alignItems: "center" },
+    noDependentsContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20, // Espaciado lateral para evitar bordes pegados
+    },
+    noDependentsText: {
+        textAlign: "center",
+        fontSize: 16,
+        color: "#888", // Color gris claro
+        marginTop: 10,
+    },
+    
 });
 
 export default DependentScreen;

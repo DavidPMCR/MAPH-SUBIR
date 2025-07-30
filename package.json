@@ -11,6 +11,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~4.0.0",
     "@expo/vector-icons": "^14.0.4",
+    "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-community/viewpager": "^5.0.11",
     "@react-native-picker/picker": "2.9.0",
@@ -36,6 +37,7 @@
     "react-native-date-picker": "^5.0.9",
     "react-native-document-picker": "^9.3.1",
     "react-native-gesture-handler": "~2.20.2",
+    "react-native-html-to-pdf": "^0.12.0",
     "react-native-image-picker": "^7.2.3",
     "react-native-mask-input": "^1.2.3",
     "react-native-modal": "^13.0.1",
@@ -48,7 +50,7 @@
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
     "rn-fetch-blob": "^0.12.0",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "expo-print": "~14.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

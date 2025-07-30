@@ -56,80 +56,106 @@ const ConsultationReport = ({ route }) => {
       setLoading(false);
     }
   };
+//generar el archivo tipo excel
+const generateCSVFile = async () => {
+  try {
+      if (!reportType) {
+          Alert.alert("Error", "Seleccione un tipo de reporte.");
+          return;
+      }
 
-  const generateCSVFile = async () => {
-    try {
-        if (!reportType) {
-            Alert.alert("Error", "Seleccione un tipo de reporte.");
-            return;
-        }
+      if (reportType === 'consultations') {
+          if (!consultations.length) {
+              Alert.alert('Aviso', 'No hay consultas para generar el archivo.');
+              return;
+          }
 
-        if (reportType === 'consultations') {
-            if (!consultations.length) {
-                Alert.alert('Aviso', 'No hay consultas para generar el archivo.');
-                return;
-            }
+          const formattedConsultations = consultations.map((consulta) => ({
+              id_consulta: consulta.id_consulta || "",
+              nombre_paciente: consulta.nombre_paciente || "",
+              apellido_paciente: consulta.apellido_paciente || "",
+              fecha_consulta: consulta.fecha_consulta || "",
+              id_cedula: consulta.id_cedula || "",
+              id_empresa: consulta.id_empresa || "",
+              tipoconsulta: consulta.tipoconsulta || "",
+              valoracion: consulta.valoracion || "",
+              presion_arterial: consulta.presion_arterial || "",
+              frecuencia_cardiaca: consulta.frecuencia_cardiaca || "",
+              saturacion_oxigeno: consulta.saturacion_oxigeno || "",
+              glicemia: consulta.glicemia || "",
+              frecuencia_respiratoria: consulta.frecuencia_respiratoria || "",
+              plan_tratamiento: consulta.plan_tratamiento || "",
+              monto_consulta: consulta.monto_consulta || "",
+          }));
 
-            const keys = Object.keys(consultations[0]);
-            const headers = keys.join(',') + '\n';
-            const content = consultations.map((consulta) => keys.map((key) => consulta[key]).join(',')).join('\n');
+          const keys = Object.keys(formattedConsultations[0]);
+          const headers = keys.join(',') + '\n';
+          const content = formattedConsultations
+              .map((consulta) => keys.map((key) => `"${consulta[key]}"`).join(','))
+              .join('\n');
 
-            const filePath = `${FileSystem.documentDirectory}historial_consultas_${selectedPatient}.csv`;
-            await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
-            
-            if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(filePath);
-                Alert.alert("✅ Éxito", "El reporte se generó correctamente.");
-            }
+          const filePath = `${FileSystem.documentDirectory}historial_consultas_${selectedPatient}.csv`;
+          await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
 
-        } else if (reportType === 'monthly' || reportType === 'detailed') {
-            if (!year || !month || !months[month]) {
-                Alert.alert('', 'Por favor ingrese un año válido y seleccione un mes.');
-                return;
-            }
+          if (await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(filePath);
+              Alert.alert("✅ Éxito", "El reporte de consultas se generó correctamente.");
+          }
 
-            const url = reportType === 'monthly' 
-                ? `${API}/report/${year}/${months[month]}/${user.id_empresa}`
-                : `${API}/report/agrupado/${year}/${months[month]}/${user.id_empresa}`;
+      } else if (reportType === 'monthly' || reportType === 'detailed') {
+          if (!year || !month || !months[month]) {
+              Alert.alert('Error', 'Por favor ingrese un año válido y seleccione un mes.');
+              return;
+          }
 
-            const response = await axios.get(url);
-            const reportData = response.data.data;
+          const url = reportType === 'monthly' 
+              ? `${API}/report/${year}/${months[month]}/${user.id_empresa}`
+              : `${API}/report/agrupado/${year}/${months[month]}/${user.id_empresa}`;
 
-            if (!reportData || (Array.isArray(reportData) && reportData.length === 0)) {
-                console.error("❌ La API no devolvió datos válidos:", response.data);
-                Alert.alert("Error", "No se recibieron datos del servidor.");
-                return;
-            }
+          const response = await axios.get(url);
+          let reportData = response.data.data;
 
-            const reportObject = Array.isArray(reportData) ? reportData[0] : reportData;
-            const { anio, mes, total_consultas, monto_total_mensual, detalles } = reportObject;
+          if (!reportData || Object.keys(reportData).length === 0) {
+              console.error("❌ La API no devolvió datos válidos:", response.data);
+              Alert.alert("Error", "No se recibieron datos del servidor.");
+              return;
+          }
 
-            console.log(`✅ Datos obtenidos: Año ${anio}, Mes ${mes}, Consultas ${total_consultas}, Monto Total ${monto_total_mensual}`);
+          // 🔹 Si `reportData` es un array, tomamos el primer elemento
+          if (Array.isArray(reportData)) {
+              reportData = reportData[0]; 
+          }
 
-            let headers, content;
-            if (detalles && Array.isArray(detalles) && detalles.length > 0) {
-                const keys = Object.keys(detalles[0]);
-                headers = keys.join(',') + ',Total Consultas,Monto Total Mensual\n';
-                content = detalles.map((item) => keys.map((key) => item[key]).join(',')).join('\n') + 
-                          `\nTotal Consultas:,${total_consultas},Monto Total Mensual:,${monto_total_mensual}`;
-            } else {
-                headers = "anio,mes,total_consultas,monto_total_mensual\n";
-                content = `${anio},${mes},${total_consultas},${monto_total_mensual}`;
-            }
+          // 🔹 Extraemos los datos correctamente
+          const { anio, mes, total_consultas, total_mensual, monto_total_mensual, detalles } = reportData;
 
-            const filePath = `${FileSystem.documentDirectory}reporte_${reportType}_${anio}_${mes}.csv`;
-            await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
+          console.log(`✅ Datos obtenidos: Año ${anio}, Mes ${mes}, Consultas ${total_consultas}, Monto Total ${monto_total_mensual || total_mensual}`);
 
-            if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(filePath);
-                Alert.alert("✅ Éxito", "El reporte se generó correctamente.");
-            }
-        }
-    } catch (error) {
-        console.error('Error al generar el archivo CSV:', error.message);
-        Alert.alert('❌ Error', 'No se pudo generar el archivo de reporte, verique que año o mes sean correctos o posean consultas ');
-    }
+          let headers, content;
+          if (detalles && Array.isArray(detalles) && detalles.length > 0) {
+              const keys = Object.keys(detalles[0]);
+              headers = keys.join(',') + ',Total Consultas,Monto Total Mensual\n';
+              content = detalles.map((item) => keys.map((key) => `"${item[key]}"`).join(',')).join('\n') + 
+                        `\nTotal Consultas:,${total_consultas},Monto Total Mensual:,${monto_total_mensual || total_mensual}`;
+          } else {
+              headers = "anio,mes,total_consultas,monto_total_mensual\n";
+              content = `${anio},${mes},${total_consultas},${monto_total_mensual || total_mensual}`;
+          }
+
+          const filePath = `${FileSystem.documentDirectory}reporte_${reportType}_${anio}_${mes}.csv`;
+          await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
+
+          if (await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(filePath);
+              Alert.alert("✅ Éxito", "El reporte se generó correctamente.");
+          }
+      }
+  } catch (error) {
+      console.error('Error al generar el archivo CSV:', error.message);
+      Alert.alert('❌ Error', 'No se pudo generar el archivo de reporte.');
+  }
 };
+
 
 
   useEffect(() => {
