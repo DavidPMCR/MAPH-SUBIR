@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput, FlatList, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import { Picker } from '@react-native-picker/picker';
 import * as FileSystem from 'expo-file-system';
@@ -24,17 +24,11 @@ const ConsultationReport = ({ route }) => {
   const fetchPatients = async () => {
     try {
       const response = await axios.get(`${API}/patient/empresa/${user.id_empresa}`);
-  
-      // 🔹 Verificamos si response.data y response.data.data existen
-      if (response.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-        setPatients(response.data.data); // ✅ Si hay pacientes, los guardamos
-      } else {
-        setPatients([]); // 🔹 Si no hay pacientes, aseguramos que `patients` sea un array vacío
-      }
+      setPatients(response.data?.data || []);
     } catch (error) {
       console.error('❌ Error al cargar los pacientes:', error.message);
       Alert.alert('Error', 'No se pudieron cargar los pacientes.');
-      setPatients([]); // 🔹 Si hay un error, evitamos que `patients` sea `undefined`
+      setPatients([]);
     }
   };
 
@@ -43,120 +37,113 @@ const ConsultationReport = ({ route }) => {
       setConsultations([]);
       return;
     }
-    
     setLoading(true);
     try {
       const response = await axios.get(`${API}/consultation/${cedula}`);
-      setConsultations(response.data.data || []);
+      setConsultations(response.data?.data || []);
     } catch (error) {
       console.error('Error al cargar las consultas:', error.message);
-      Alert.alert('Aviso', 'Paciente no posee consultas.');
       setConsultations([]);
     } finally {
       setLoading(false);
     }
   };
-//generar el archivo tipo excel
-const generateCSVFile = async () => {
-  try {
+
+  const generateCSVFile = async () => {
+    try {
       if (!reportType) {
-          Alert.alert("Error", "Seleccione un tipo de reporte.");
-          return;
+        Alert.alert("Error", "Seleccione un tipo de reporte.");
+        return;
       }
 
       if (reportType === 'consultations') {
-          if (!consultations.length) {
-              Alert.alert('Aviso', 'No hay consultas para generar el archivo.');
-              return;
-          }
+        if (!consultations.length) {
+          Alert.alert('Aviso', 'No hay consultas para generar el archivo.');
+          return;
+        }
 
-          const formattedConsultations = consultations.map((consulta) => ({
-              id_consulta: consulta.id_consulta || "",
-              nombre_paciente: consulta.nombre_paciente || "",
-              apellido_paciente: consulta.apellido_paciente || "",
-              fecha_consulta: consulta.fecha_consulta || "",
-              id_cedula: consulta.id_cedula || "",
-              id_empresa: consulta.id_empresa || "",
-              tipoconsulta: consulta.tipoconsulta || "",
-              valoracion: consulta.valoracion || "",
-              presion_arterial: consulta.presion_arterial || "",
-              frecuencia_cardiaca: consulta.frecuencia_cardiaca || "",
-              saturacion_oxigeno: consulta.saturacion_oxigeno || "",
-              glicemia: consulta.glicemia || "",
-              frecuencia_respiratoria: consulta.frecuencia_respiratoria || "",
-              plan_tratamiento: consulta.plan_tratamiento || "",
-              monto_consulta: consulta.monto_consulta || "",
-          }));
+        const formattedConsultations = consultations.map((consulta) => ({
+          id_consulta: consulta.id_consulta || "",
+          nombre_paciente: consulta.nombre_paciente || "",
+          apellido_paciente: consulta.apellido_paciente || "",
+          fecha_consulta: consulta.fecha_consulta || "",
+          id_cedula: consulta.id_cedula || "",
+          id_empresa: consulta.id_empresa || "",
+          tipoconsulta: consulta.tipoconsulta || "",
+          valoracion: consulta.valoracion || "",
+          presion_arterial: consulta.presion_arterial || "",
+          frecuencia_cardiaca: consulta.frecuencia_cardiaca || "",
+          saturacion_oxigeno: consulta.saturacion_oxigeno || "",
+          glicemia: consulta.glicemia || "",
+          frecuencia_respiratoria: consulta.frecuencia_respiratoria || "",
+          plan_tratamiento: consulta.plan_tratamiento || "",
+          monto_consulta: consulta.monto_consulta || "",
+        }));
 
-          const keys = Object.keys(formattedConsultations[0]);
-          const headers = keys.join(',') + '\n';
-          const content = formattedConsultations
-              .map((consulta) => keys.map((key) => `"${consulta[key]}"`).join(','))
-              .join('\n');
+        const keys = Object.keys(formattedConsultations[0]);
+        const headers = keys.join(',') + '\n';
+        const content = formattedConsultations
+          .map((consulta) => keys.map((key) => `"${consulta[key]}"`).join(','))
+          .join('\n');
 
-          const filePath = `${FileSystem.documentDirectory}historial_consultas_${selectedPatient}.csv`;
-          await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
+        const filePath = `${FileSystem.documentDirectory}historial_consultas_${selectedPatient}.csv`;
+        await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
 
-          if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(filePath);
-              Alert.alert("✅ Éxito", "El reporte de consultas se generó correctamente.");
-          }
-
-      } else if (reportType === 'monthly' || reportType === 'detailed') {
-          if (!year || !month || !months[month]) {
-              Alert.alert('Error', 'Por favor ingrese un año válido y seleccione un mes.');
-              return;
-          }
-
-          const url = reportType === 'monthly' 
-              ? `${API}/report/${year}/${months[month]}/${user.id_empresa}`
-              : `${API}/report/agrupado/${year}/${months[month]}/${user.id_empresa}`;
-
-          const response = await axios.get(url);
-          let reportData = response.data.data;
-
-          if (!reportData || Object.keys(reportData).length === 0) {
-              console.error("❌ La API no devolvió datos válidos:", response.data);
-              Alert.alert("Error", "No se recibieron datos del servidor.");
-              return;
-          }
-
-          // 🔹 Si `reportData` es un array, tomamos el primer elemento
-          if (Array.isArray(reportData)) {
-              reportData = reportData[0]; 
-          }
-
-          // 🔹 Extraemos los datos correctamente
-          const { anio, mes, total_consultas, total_mensual, monto_total_mensual, detalles } = reportData;
-
-          console.log(`✅ Datos obtenidos: Año ${anio}, Mes ${mes}, Consultas ${total_consultas}, Monto Total ${monto_total_mensual || total_mensual}`);
-
-          let headers, content;
-          if (detalles && Array.isArray(detalles) && detalles.length > 0) {
-              const keys = Object.keys(detalles[0]);
-              headers = keys.join(',') + ',Total Consultas,Monto Total Mensual\n';
-              content = detalles.map((item) => keys.map((key) => `"${item[key]}"`).join(',')).join('\n') + 
-                        `\nTotal Consultas:,${total_consultas},Monto Total Mensual:,${monto_total_mensual || total_mensual}`;
-          } else {
-              headers = "anio,mes,total_consultas,monto_total_mensual\n";
-              content = `${anio},${mes},${total_consultas},${monto_total_mensual || total_mensual}`;
-          }
-
-          const filePath = `${FileSystem.documentDirectory}reporte_${reportType}_${anio}_${mes}.csv`;
-          await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
-
-          if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(filePath);
-              Alert.alert("✅ Éxito", "El reporte se generó correctamente.");
-          }
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(filePath);
+          Alert.alert("✅ Éxito", "El reporte de consultas se generó correctamente.");
+        }
       }
-  } catch (error) {
+
+      // 🔹 Aquí no toco nada de monthly y detailed, se mantiene igual
+      else if (reportType === 'monthly' || reportType === 'detailed') {
+        if (!year || !month || !months[month]) {
+          Alert.alert('Error', 'Por favor ingrese un año válido y seleccione un mes.');
+          return;
+        }
+
+        const url = reportType === 'monthly' 
+          ? `${API}/report/${year}/${months[month]}/${user.id_empresa}`
+          : `${API}/report/agrupado/${year}/${months[month]}/${user.id_empresa}`;
+
+        const response = await axios.get(url);
+        let reportData = response.data.data;
+
+        if (!reportData || Object.keys(reportData).length === 0) {
+          Alert.alert("Error", "No se recibieron datos del servidor.");
+          return;
+        }
+
+        if (Array.isArray(reportData)) {
+          reportData = reportData[0]; 
+        }
+
+        const { anio, mes, total_consultas, total_mensual, monto_total_mensual, detalles } = reportData;
+
+        let headers, content;
+        if (detalles && Array.isArray(detalles) && detalles.length > 0) {
+          const keys = Object.keys(detalles[0]);
+          headers = keys.join(',') + ',Total Consultas,Monto Total Mensual\n';
+          content = detalles.map((item) => keys.map((key) => `"${item[key]}"`).join(',')).join('\n') + 
+                    `\nTotal Consultas:,${total_consultas},Monto Total Mensual:,${monto_total_mensual || total_mensual}`;
+        } else {
+          headers = "anio,mes,total_consultas,monto_total_mensual\n";
+          content = `${anio},${mes},${total_consultas},${monto_total_mensual || total_mensual}`;
+        }
+
+        const filePath = `${FileSystem.documentDirectory}reporte_${reportType}_${anio}_${mes}.csv`;
+        await FileSystem.writeAsStringAsync(filePath, headers + content, { encoding: FileSystem.EncodingType.UTF8 });
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(filePath);
+          Alert.alert("✅ Éxito", "El reporte se generó correctamente.");
+        }
+      }
+    } catch (error) {
       console.error('Error al generar el archivo CSV:', error.message);
       Alert.alert('❌ Error', 'No se pudo generar el archivo de reporte.');
-  }
-};
-
-
+    }
+  };
 
   useEffect(() => {
     fetchPatients();
@@ -185,6 +172,28 @@ const generateCSVFile = async () => {
         </Picker>
       )}
 
+      {loading && <ActivityIndicator size="large" color="#007bff" />}
+
+      {/* ✅ Mostrar consultas en pantalla */}
+      {reportType === 'consultations' && selectedPatient && !loading && (
+        consultations.length > 0 ? (
+          <FlatList
+            data={consultations}
+            keyExtractor={(item) => item.id_consulta.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Consulta #{item.id_consulta}</Text>
+                <Text>Tipo: {item.tipoconsulta}</Text>
+                <Text>Fecha: {new Date(item.fecha_consulta).toLocaleDateString()}</Text>
+                <Text>Monto: ₡{item.monto_consulta}</Text>
+              </View>
+            )}
+          />
+        ) : (
+          <Text style={styles.noData}>📌 Este paciente no tiene consultas registradas.</Text>
+        )
+      )}
+
       {(reportType === 'monthly' || reportType === 'detailed') && (
         <>
           <TextInput 
@@ -194,7 +203,6 @@ const generateCSVFile = async () => {
             value={year} 
             onChangeText={setYear} 
           />
-
           <Picker 
             selectedValue={month} 
             onValueChange={(itemValue) => setMonth(itemValue)} 
@@ -205,7 +213,6 @@ const generateCSVFile = async () => {
               <Picker.Item key={monthName} label={monthName} value={monthName} />
             ))}
           </Picker>
-          
         </>
       )}
 
@@ -223,6 +230,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   picker: { marginBottom: 20, backgroundColor: '#fff' },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 20, backgroundColor: '#fff' },
+  card: { backgroundColor: '#fff', padding: 15, marginBottom: 10, borderRadius: 8, elevation: 2 },
+  cardTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 5 },
+  noData: { textAlign: 'center', color: 'gray', marginTop: 10, fontStyle: 'italic' },
   downloadButton: { backgroundColor: '#007bff', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   buttonText: { color: '#fff', fontWeight: 'bold' },
 });
